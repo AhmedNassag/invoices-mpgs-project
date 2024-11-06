@@ -1,0 +1,136 @@
+{
+  "_Css-!~{00a}~.js": {
+    "file": "assets/Css-wH0yFzPi.css",
+    "src": "_Css-!~{00a}~.js"
+  },
+  "_Css-txpIKB5n.js": {
+    "file": "assets/Css-txpIKB5n.js",
+    "name": "Css",
+    "imports": [
+      "resources/js/app.jsx"
+    ],
+    "css": [
+      "assets/Css-wH0yFzPi.css"
+    ]
+  },
+  "_InvoiceCart-D_Dra_CC.js": {
+    "file": "assets/InvoiceCart-D_Dra_CC.js",
+    "name": "InvoiceCart",
+    "imports": [
+      "resources/js/app.jsx",
+      "_Css-txpIKB5n.js"
+    ]
+  },
+  "_QuotationCart-Ba2syAKJ.js": {
+    "file": "assets/QuotationCart-Ba2syAKJ.js",
+    "name": "QuotationCart",
+    "imports": [
+      "resources/js/app.jsx",
+      "_Css-txpIKB5n.js"
+    ]
+  },
+  "_react-paginate-H0GA9Uio.js": {
+    "file": "assets/react-paginate-H0GA9Uio.js",
+    "name": "react-paginate",
+    "imports": [
+      "resources/js/app.jsx"
+    ]
+  },
+  "resources/js/Pages/BasyLayout.jsx": {
+    "file": "assets/BasyLayout-C97k69Q-.js",
+    "name": "BasyLayout",
+    "src": "resources/js/Pages/BasyLayout.jsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.jsx"
+    ]
+  },
+  "resources/js/Pages/Invoice/Create.jsx": {
+    "file": "assets/Create-DDeiabIJ.js",
+    "name": "Create",
+    "src": "resources/js/Pages/Invoice/Create.jsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.jsx",
+      "_InvoiceCart-D_Dra_CC.js",
+      "resources/js/Pages/BasyLayout.jsx",
+      "_Css-txpIKB5n.js"
+    ]
+  },
+  "resources/js/Pages/Invoice/Edit.jsx": {
+    "file": "assets/Edit-CmLqgHnO.js",
+    "name": "Edit",
+    "src": "resources/js/Pages/Invoice/Edit.jsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.jsx",
+      "_InvoiceCart-D_Dra_CC.js",
+      "resources/js/Pages/BasyLayout.jsx",
+      "_Css-txpIKB5n.js"
+    ]
+  },
+  "resources/js/Pages/Invoice/List.jsx": {
+    "file": "assets/List-rL1yKNLF.js",
+    "name": "List",
+    "src": "resources/js/Pages/Invoice/List.jsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.jsx",
+      "resources/js/Pages/BasyLayout.jsx",
+      "_react-paginate-H0GA9Uio.js"
+    ]
+  },
+  "resources/js/Pages/Quotation/Create.jsx": {
+    "file": "assets/Create-Dy4kVMNL.js",
+    "name": "Create",
+    "src": "resources/js/Pages/Quotation/Create.jsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.jsx",
+      "_QuotationCart-Ba2syAKJ.js",
+      "resources/js/Pages/BasyLayout.jsx",
+      "_Css-txpIKB5n.js"
+    ]
+  },
+  "resources/js/Pages/Quotation/Edit.jsx": {
+    "file": "assets/Edit-D5B-fRfU.js",
+    "name": "Edit",
+    "src": "resources/js/Pages/Quotation/Edit.jsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.jsx",
+      "_QuotationCart-Ba2syAKJ.js",
+      "resources/js/Pages/BasyLayout.jsx",
+      "_Css-txpIKB5n.js"
+    ]
+  },
+  "resources/js/Pages/Quotation/List.jsx": {
+    "file": "assets/List-h4exFBdS.js",
+    "name": "List",
+    "src": "resources/js/Pages/Quotation/List.jsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.jsx",
+      "resources/js/Pages/BasyLayout.jsx",
+      "_react-paginate-H0GA9Uio.js"
+    ]
+  },
+  "resources/js/app.jsx": {
+    "file": "assets/app-C9pLc5ld.js",
+    "name": "app",
+    "src": "resources/js/app.jsx",
+    "isEntry": true,
+    "dynamicImports": [
+      "resources/js/Pages/BasyLayout.jsx",
+      "resources/js/Pages/Invoice/Create.jsx",
+      "resources/js/Pages/Invoice/Edit.jsx",
+      "resources/js/Pages/Invoice/List.jsx",
+      "resources/js/Pages/Quotation/Create.jsx",
+      "resources/js/Pages/Quotation/Edit.jsx",
+      "resources/js/Pages/Quotation/List.jsx"
+    ],
+    "css": [
+      "assets/app-CYivYX3d.css"
+    ]
+  }
+}
