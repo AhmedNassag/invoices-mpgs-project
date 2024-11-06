@@ -93,4 +93,12 @@ Route::group(['namespace' => 'Admin'], function () {
 });
 
 
-Route::
+Route::group(['prefix'=> 'ajax', 'as' => 'ajax.'], function () {
+    Route::post('product-list', 'UtilityController@getProductList')->name('product.list');
+    Route::post('tax-list', 'UtilityController@getTaxList')->name('tax.list');
+    Route::post('quick-user', 'UtilityController@addQuickUser')->name('quick.user');
+});
+
+Route::fallback(function () {
+    return view('errors.404');
+});
