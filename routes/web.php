@@ -23,6 +23,16 @@ Route::get('/migrate', function () {
     return "Migrate Done Successfully";
 });
 
+
+//MasterCard Payment Getway Service (MPGS)
+Route::post('create_checkout_session', 'App\Http\Controllers\Admin\InvoiceController@create_checkout_session')->name('checkout.session');
+Route::post('verify', 'App\Http\Controllers\Admin\InvoiceController@verify')->name('checkout.verify');
+Route::get('checkout/{uuid}', 'App\Http\Controllers\Admin\InvoiceController@checkout')->name('checkout');
+Route::get('success', 'App\Http\Controllers\Admin\InvoiceController@success')->name('checkout.success');
+Route::get('error', 'App\Http\Controllers\Admin\InvoiceController@error')->name('checkout.error');
+
+
+
 Auth::routes();
 
 Route::group(['middleware' => ['auth'], 'namespace' => 'Admin', 'as' => 'admin.'], function () {

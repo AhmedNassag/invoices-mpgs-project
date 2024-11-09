@@ -10,6 +10,8 @@ use App\Http\Controllers\BackendController;
 use App\Http\Requests\QuotationRequest;
 use App\Mail\SendInvoiceMail;
 use App\Models\Invoice;
+use App\Models\Setting;
+use App\Models\PaymentLog;
 use App\Models\InvoiceProduct;
 use App\Models\InvoiceTax;
 use App\Models\Product;
@@ -320,5 +322,150 @@ class InvoiceController extends BackendController
         }
 
         return response()->download($media->getPath(), $media->file_name);
+    }
+
+
+
+    public function create_checkout_session(Request $request)
+    {
+        $invoice = Invoice::where('uuid', $request->uuid)->first();
+        $currency_code = Setting::where('key', 'currency_code')->first()->value;
+    
+        // Your API credentials
+        $merchantId = Setting::where('key', 'MERCHANT_ID')->first()->value;
+        $apiUsername = 'merchant.' . $merchantId;
+        $apiPassword = Setting::where('key', 'API_PASSWORD')->first()->value;
+    
+        // API endpoint URL for creating a session
+        $url = 'https://cibpaynow.gateway.mastercard.com/api/rest/version/57/merchant/' . $merchantId . '/session';
+    
+        // Payment data
+        $data = [
+            "apiOperation" => "CREATE_CHECKOUT_SESSION",
+            "order" => [
+                "id" => "order_" . uniqid(),
+                "amount" => $invoice->total_amount, // Payment amount
+                "currency" => $currency_code // Currency code
+            ],
+            "interaction" => [
+                "operation" => "PURCHASE",
+                 'returnUrl' => route('checkout.success'),
+                 'cancelUrl' => route('checkout.error')
+            ]
+        ];
+        // Initialize cURL
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Content-Type: application/json',
+            'Authorization: Basic ' . base64_encode($apiUsername . ':' . $apiPassword)
+        ]);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+    
+        // Execute request
+        $response = curl_exec($ch);
+    
+        // Check for cURL errors
+        if (curl_errno($ch)) {
+            $error_msg = curl_error($ch);
+            curl_close($ch);
+    
+            // Log the error for debugging
+            \Log::error('cURL error during checkout session creation: ' . $error_msg);
+    
+            return response()->json([
+                "status" => "error",
+                "message" => "Request failed: " . $error_msg
+            ], 500);
+        }
+    
+        curl_close($ch);
+    
+        // Process response
+        $responseData = json_decode($response, true);
+    
+        // Check if the session ID is returned
+        if (isset($responseData['session']['id'])) {
+            return response()->json([
+                "status" => "success",
+                "sessionId" => $responseData['session']['id']
+            ]);
+        } else {
+            // Log the API error for debugging
+            \Log::error('Error in response from Mastercard API: ' . $response);
+    
+            return response()->json([
+                "status" => "error",
+                "message" => "Failed to create session",
+                "details" => $responseData
+            ], 500);
+        }
+    }
+    
+
+
+
+    public function checkout($uuid)
+    {
+        return view('backend.invoice.checkout',compact('uuid'));
+    }
+    public function verify(Request $request) {
+
+         // Your API credentials
+        $merchantId = Setting::where('key', 'MERCHANT_ID')->first()->value;
+        $apiUsername = 'merchant.' . $merchantId;
+        $apiPassword = Setting::where('key', 'API_PASSWORD')->first()->value;
+        $invoice = Invoice::where('uuid', $request->uuid)->first();
+        // Retrieve transaction ID from the request
+        $transactionId = $request->input('transactionId');
+
+        if (!$transactionId) {
+            return response()->json(['status' => 'error', 'message' => 'Transaction ID is required'], 400);
+        }
+
+        // Mastercard API endpoint to verify payment status
+        $url = 'https://cibpaynow.gateway.mastercard.com/api/rest/version/57/merchant/' . $merchantId . '/order/' . $transactionId;
+
+        // Send the request to verify the payment
+        $response = Http::withBasicAuth($apiUsername, $apiPassword)
+                        ->withHeaders(['Content-Type' => 'application/json'])
+                        ->get($url);
+
+        if ($response->successful()) {
+            $responseData = $response->json();
+
+            // Check if payment was successful
+            if (isset($responseData['result']) && $responseData['result'] === "SUCCESS") {
+                $invoice->payment_status=15;
+                $invoice->save();
+                PaymentLog::create([
+                    'transaction_id' => $transactionId,
+                    'status' => "SUCCESS",
+                    'amount' => $responseData['order']['amount'],
+                    'currency' => $responseData['order']['currency'],
+                    'invoice_id'=>$invoice->id,
+                    'timestamp' => Carbon::now(),
+                ]);
+
+                return response()->json(['status' => 'success', 'message' => 'Payment logged successfully']);
+            } else {
+                return response()->json(['status' => 'error', 'message' => 'Payment verification failed'], 400);
+            }
+        } else {
+            return response()->json(['status' => 'error', 'message' => 'Failed to verify payment'], 500);
+        }
+    }
+
+
+
+    public function success()
+    {
+        return view('backend.invoice.success');
+    }
+
+    public function error()
+    {
+        return view('backend.invoice.error');
     }
 }

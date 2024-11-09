@@ -13,6 +13,21 @@ return [
     |
     */
 
+
+
+    /*************************Start Mail*************************
+        MAIL_MAILER=smtp
+        MAIL_HOST=smtp.gmail.com
+        MAIL_PORT=587
+        MAIL_USERNAME=ahmednassag@gmail.com
+        MAIL_PASSWORD=ukyumnqeuamqizle
+        MAIL_ENCRYPTION=tls
+        MAIL_FROM_ADDRESS="ahmednassag@gmail.com"
+        MAIL_FROM_NAME="Ahmed Nabil"
+    *************************End Mail*************************/
+
+
+
     'default' => env('MAIL_MAILER', 'smtp'),
 
     /*
@@ -36,11 +51,11 @@ return [
     'mailers' => [
         'smtp' => [
             'transport' => 'smtp',
-            'host' => env('MAIL_HOST', 'smtp.mailgun.org'),
+            'host' => env('MAIL_HOST', /*'smtp.mailgun.org'*/ 'smtp.gmail.com'),
             'port' => env('MAIL_PORT', 587),
             'encryption' => env('MAIL_ENCRYPTION', 'tls'),
-            'username' => env('MAIL_USERNAME'),
-            'password' => env('MAIL_PASSWORD'),
+            'username' => '',
+            'password' => env('MAIL_PASSWORD', /* */ 'ukyumnqeuamqizle'),
             'timeout' => null,
             'auth_mode' => null,
         ],
@@ -84,8 +99,8 @@ return [
     */
 
     'from' => [
-        'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
-        'name' => env('MAIL_FROM_NAME', 'Example'),
+        'address' => env('MAIL_FROM_ADDRESS', /*'hello@example.com'*/ 'ahmednassag@gmail.com'),
+        'name' => env('MAIL_FROM_NAME', /*'Example'*/ 'Ahmed Nabil'),
     ],
 
     /*
