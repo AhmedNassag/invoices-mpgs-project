@@ -1,7 +1,7 @@
 @extends('_share_main_layout')
 
 @section('content')
-    
+
     <div class="container-fluid">
         <!-- Content Row -->
         <div class="row">
@@ -43,7 +43,7 @@
                                         <div><strong>{{ __('Due Date') }}:</strong> {{ $invoice->due_date->format('d M Y') }}</div>
                                         <div><strong>{{ __('Reference No') }}:</strong> {{ $invoice->reference_no }}</div>
                                         @if($invoice->file)
-                                            <div><strong>{{ __('File') }}:</strong> 
+                                            <div><strong>{{ __('File') }}:</strong>
                                                 &nbsp;&nbsp;<a href="{{ route('admin.invoice.download', $invoice->getFirstMedia('invoice')) }}" class="text-primary"><i class="fa fa-download"></i> {{ __('Download ') }}</a>
                                             </div>
                                         @endif
@@ -116,11 +116,11 @@
                                     </tbody>
                                 </table>
                             </div>
-                            
+
                             @if(!blank($invoice->note))
                                 <div class="invoice-notes text-center">
                                     <div class="p-3 bg-light rounded">
-                                        <span class="font-weight-bold">{{ __('Notes') }}:</span> 
+                                        <span class="font-weight-bold">{{ __('Notes') }}:</span>
                                         {{ $invoice->note }}
                                     </div>
                                 </div>
@@ -129,7 +129,7 @@
                         <div class="invoice-actions text-center mt-3">
                             <ul class="list list-inline mx-auto">
                                 <li class="list-inline-item">
-                                    <button id="print-invoice-button" type="button" onclick="printDiv()" class="btn btn-primary"> 
+                                    <button id="print-invoice-button" type="button" onclick="printDiv()" class="btn btn-primary">
                                         <i class="fa fa-print"></i> {{ __('Print Invoice') }}
                                     </button>
                                 </li>

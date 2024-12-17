@@ -2,36 +2,40 @@
 
 namespace App\Http\Controllers\Admin;
 
+use Exception;
+use App\Models\User;
+use Inertia\Inertia;
+use Inertia\Response;
+use GuzzleHttp\Client;
+use App\Models\Invoice;
+use App\Models\Payment;
+use App\Models\Product;
+use App\Models\Setting;
+use App\Models\TaxRate;
+use App\Mail\InvoiceMail;
+use App\Models\InvoiceTax;
+use App\Models\PaymentLog;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Enums\ProductStatus;
 use App\Enums\TaxRateStatus;
-use App\Http\Controllers\BackendController;
-use App\Http\Requests\QuotationRequest;
-use App\Mail\SendInvoiceMail;
-use App\Models\Invoice;
-use App\Models\Setting;
-use App\Models\PaymentLog;
-use App\Models\InvoiceProduct;
-use App\Models\InvoiceTax;
-use App\Models\Product;
-use App\Models\TaxRate;
-use App\Models\User;
-use App\Services\Modules\InvoiceService;
-use Exception;
-use Illuminate\Contracts\Foundation\Application;
-use Illuminate\Contracts\View\Factory;
-use Illuminate\Contracts\View\View;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use App\Mail\SendInvoiceMail;
+use App\Models\InvoiceProduct;
 use Illuminate\Routing\Redirector;
-use Illuminate\Support\Facades\Crypt;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Contracts\View\Factory;
+use App\Http\Requests\QuotationRequest;
 use Illuminate\Support\Facades\Session;
+use App\Services\Modules\InvoiceService;
 use Illuminate\Support\Facades\Validator;
-use Inertia\Inertia;
-use Inertia\Response;
+use App\Notifications\InvoiceNotification;
+use App\Http\Controllers\BackendController;
+use Illuminate\Contracts\Foundation\Application;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
@@ -132,6 +136,13 @@ class InvoiceController extends BackendController
         $this->invoiceService->saveProduct($invoice, $request);
 
         $this->invoiceService->calculate($invoice);
+
+
+        //send email to user
+        // $user = User::findOrFail($invoice->user_id);
+        // $user->notify(new InvoiceNotification($invoice));
+        // Mail::to($user->email)->send(new InvoiceMail($invoice));
+
 
         return to_route('admin.invoice.index');
     }
@@ -330,29 +341,50 @@ class InvoiceController extends BackendController
     {
         $invoice = Invoice::where('uuid', $request->uuid)->first();
         $currency_code = Setting::where('key', 'currency_code')->first()->value;
-    
+
         // Your API credentials
         $merchantId = Setting::where('key', 'MERCHANT_ID')->first()->value;
         $apiUsername = 'merchant.' . $merchantId;
         $apiPassword = Setting::where('key', 'API_PASSWORD')->first()->value;
-    
+        // dd($apiPassword, $apiUsername, $merchantId);
         // API endpoint URL for creating a session
-        $url = 'https://cibpaynow.gateway.mastercard.com/api/rest/version/57/merchant/' . $merchantId . '/session';
-    
+        // $url = 'https://cibpaynow.gateway.mastercard.com/api/rest/version/57/merchant/' . $merchantId . '/session';
+        $url = 'https://banquemisr.gateway.mastercard.com/api/rest/version/100/merchant/' . $merchantId . '/session';
+
+
         // Payment data
-        $data = [
-            "apiOperation" => "CREATE_CHECKOUT_SESSION",
-            "order" => [
-                "id" => "order_" . uniqid(),
-                "amount" => $invoice->total_amount, // Payment amount
-                "currency" => $currency_code // Currency code
-            ],
-            "interaction" => [
+        // $data = [
+        //     "apiOperation" => "CREATE_CHECKOUT_SESSION",
+        //     "order" => [
+        //         "id" => "order_" . uniqid(),
+        //         "amount" => $invoice->total_amount, // Payment amount
+        //         "currency" => $currency_code // Currency code
+        //     ],
+        //     "interaction" => [
+        //         "operation" => "PURCHASE",
+        //          'returnUrl' => route('checkout.success'),
+        //          'cancelUrl' => route('checkout.error')
+        //     ]
+        // ];
+        $data=[
+            "apiOperation"=> "INITIATE_CHECKOUT",
+            "checkoutMode"=>"WEBSITE",
+            "interaction"=>[
                 "operation" => "PURCHASE",
-                 'returnUrl' => route('checkout.success'),
-                 'cancelUrl' => route('checkout.error')
+                 "merchant" => [
+                     "name" => "JK Enterprises LLC",
+                    "url" => route('checkout.success')
+                 ],
+                "returnUrl" => route('checkout.success')
+            ],
+            "order"=> [
+                "currency" => "EGP",
+                "amount" => "250.00",
+                "id" => "1",
+                "description" => "Goods and Services"
             ]
-        ];
+            ];
+
         // Initialize cURL
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
@@ -362,29 +394,29 @@ class InvoiceController extends BackendController
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-    
+
         // Execute request
         $response = curl_exec($ch);
-    
+
         // Check for cURL errors
         if (curl_errno($ch)) {
             $error_msg = curl_error($ch);
             curl_close($ch);
-    
+
             // Log the error for debugging
             \Log::error('cURL error during checkout session creation: ' . $error_msg);
-    
+
             return response()->json([
                 "status" => "error",
                 "message" => "Request failed: " . $error_msg
             ], 500);
         }
-    
+
         curl_close($ch);
-    
+
         // Process response
         $responseData = json_decode($response, true);
-    
+
         // Check if the session ID is returned
         if (isset($responseData['session']['id'])) {
             return response()->json([
@@ -394,7 +426,7 @@ class InvoiceController extends BackendController
         } else {
             // Log the API error for debugging
             \Log::error('Error in response from Mastercard API: ' . $response);
-    
+
             return response()->json([
                 "status" => "error",
                 "message" => "Failed to create session",
@@ -402,70 +434,179 @@ class InvoiceController extends BackendController
             ], 500);
         }
     }
-    
+
 
 
 
     public function checkout($uuid)
     {
-        return view('backend.invoice.checkout',compact('uuid'));
-    }
-    public function verify(Request $request) {
-
-         // Your API credentials
-        $merchantId = Setting::where('key', 'MERCHANT_ID')->first()->value;
-        $apiUsername = 'merchant.' . $merchantId;
-        $apiPassword = Setting::where('key', 'API_PASSWORD')->first()->value;
-        $invoice = Invoice::where('uuid', $request->uuid)->first();
-        // Retrieve transaction ID from the request
-        $transactionId = $request->input('transactionId');
-
-        if (!$transactionId) {
-            return response()->json(['status' => 'error', 'message' => 'Transaction ID is required'], 400);
+        // Fetch the invoice by UUID
+        $invoice = Invoice::where('uuid', $uuid)->first();
+        if (!$invoice) {
+            return view('errors.404');
         }
 
-        // Mastercard API endpoint to verify payment status
-        $url = 'https://cibpaynow.gateway.mastercard.com/api/rest/version/57/merchant/' . $merchantId . '/order/' . $transactionId;
-
-        // Send the request to verify the payment
-        $response = Http::withBasicAuth($apiUsername, $apiPassword)
-                        ->withHeaders(['Content-Type' => 'application/json'])
-                        ->get($url);
-
-        if ($response->successful()) {
-            $responseData = $response->json();
-
-            // Check if payment was successful
-            if (isset($responseData['result']) && $responseData['result'] === "SUCCESS") {
-                $invoice->payment_status=15;
-                $invoice->save();
-                PaymentLog::create([
-                    'transaction_id' => $transactionId,
-                    'status' => "SUCCESS",
-                    'amount' => $responseData['order']['amount'],
-                    'currency' => $responseData['order']['currency'],
-                    'invoice_id'=>$invoice->id,
-                    'timestamp' => Carbon::now(),
-                ]);
-
-                return response()->json(['status' => 'success', 'message' => 'Payment logged successfully']);
-            } else {
-                return response()->json(['status' => 'error', 'message' => 'Payment verification failed'], 400);
-            }
-        } else {
-            return response()->json(['status' => 'error', 'message' => 'Failed to verify payment'], 500);
+        // Check if the invoice is already paid
+        if ($invoice->payment_status == 15) {
+            return view('backend.invoice.success');
         }
+
+        // Retrieve dynamic variables from settings
+        $merchantId   = Setting::where('key', 'MERCHANT_ID')->first()->value;
+        $apiPassword  = Setting::where('key', 'API_PASSWORD')->first()->value;
+        $currencyCode = Setting::where('key', 'currency_code')->first()->value;
+
+        // Initialize the HTTP client
+        $client = new Client();
+
+        /**/
+        // $dynamic_url = 'https://banquemisr.gateway.mastercard.com/api/rest/version/72/merchant/'.$merchantId.'/session';
+        $dynamic_url = 'https://banquemisr.gateway.mastercard.com/api/rest/version/72/merchant/TESTGAT_25/session';
+        // $basee_code  = 'merchant.'.$merchantId.':' . $apiPassword;
+        $basee_code  = 'merchant.TESTGAT_25:4d92235977da100a59f8da8ec0f32dc2';
+        /**/
+        // Make the POST request to the payment gateway
+        $response = $client->post('https://banquemisr.gateway.mastercard.com/api/rest/version/72/merchant/TESTGAT_25/session', [
+            'headers' => [
+                'authorization' => 'Basic ' . base64_encode('merchant.TESTGAT_25:4d92235977da100a59f8da8ec0f32dc2'),
+            ],
+            'json' => [
+                "apiOperation" => "INITIATE_CHECKOUT",
+                "interaction"  => [
+                    "operation" => "PURCHASE",
+                    "merchant" => [
+                        "name" => "TESTGAT_25",
+                        "url"  => route('checkout.verify')
+                     ],
+                    "returnUrl" => route('checkout.success',$uuid)
+                ],
+                "order"=> [
+                    "currency"    => "EGP",
+                    "amount"      => $invoice->total_amount,
+                    "id"          => $uuid,
+                    "description" => $invoice->note??"online payment"
+                ]
+            ],
+
+        ]);
+
+        // Parse the response and extract the session ID
+        $responseBody = $response->getBody()->getContents();
+        $data         = json_decode($responseBody, true);
+        $sessionId    = $data['session']['id'];
+
+        // Return the checkout view with the session data
+        return view('backend.invoice.checkout', compact('uuid', 'sessionId'));
     }
 
 
 
-    public function success()
+    public function verify(Request $request)
     {
-        return view('backend.invoice.success');
+        Log::info($request->all());
+        return response()->json(['status' => 'success']);
+        // dd($request->all());
+        // Your API credentials
+        // $merchantId = Setting::where('key', 'MERCHANT_ID')->first()->value;
+        // $apiUsername = 'merchant.' . $merchantId;
+        // $apiPassword = Setting::where('key', 'API_PASSWORD')->first()->value;
+        // $invoice = Invoice::where('uuid', $request->uuid)->first();
+        // // Retrieve transaction ID from the request
+        // $transactionId = $request->input('transactionId');
+
+        // if (!$transactionId) {
+        //     return response()->json(['status' => 'error', 'message' => 'Transaction ID is required'], 400);
+        // }
+
+        // // Mastercard API endpoint to verify payment status
+        // // $url = 'https://cibpaynow.gateway.mastercard.com/api/rest/version/57/merchant/' . $merchantId . '/order/' . $transactionId;
+        // $url = 'https://banquemisr.gateway.mastercard.com/api/rest/version/100/merchant/' . $merchantId . '/order/' . $transactionId;
+
+
+        // // Send the request to verify the payment
+        // $response = Http::withBasicAuth($apiUsername, $apiPassword)
+        //                 ->withHeaders(['Content-Type' => 'application/json'])
+        //                 ->get($url);
+
+        // if ($response->successful()) {
+        //     $responseData = $response->json();
+
+        //     // Check if payment was successful
+        //     if (isset($responseData['result']) && $responseData['result'] === "SUCCESS") {
+        //         $invoice->payment_status=15;
+        //         $invoice->save();
+        //         PaymentLog::create([
+        //             'transaction_id' => $transactionId,
+        //             'status' => "SUCCESS",
+        //             'amount' => $responseData['order']['amount'],
+        //             'currency' => $responseData['order']['currency'],
+        //             'invoice_id'=>$invoice->id,
+        //             'timestamp' => Carbon::now(),
+        //         ]);
+
+        //         return response()->json(['status' => 'success', 'message' => 'Payment logged successfully']);
+        //     } else {
+        //         return response()->json(['status' => 'error', 'message' => 'Payment verification failed'], 400);
+        //     }
+        // } else {
+        //     return response()->json(['status' => 'error', 'message' => 'Failed to verify payment'], 500);
+        // }
+    }
+
+
+
+    public function success($uuid)
+    {
+        $invoice = Invoice::where('uuid', $uuid)->first();
+        if ($invoice->payment_status == 15) {
+            return view('backend.invoice.success');
+        }
+        // check if payment is rejected by your reject code(14) and return error
+
+        //  check db that uuid is excists and pending to not to hit api every refresh
+        $client = new Client();
+        $response = $client->get('https://banquemisr.gateway.mastercard.com/api/rest/version/72/merchant/TESTGAT_25/order/' . $uuid, [
+            'headers' => [
+                'authorization' => 'Basic ' . base64_encode('merchant.TESTGAT_25:4d92235977da100a59f8da8ec0f32dc2'),
+            ],
+        ]);
+        $result = json_decode($response->getBody(), true);
+        if ($result['result'] === 'SUCCESS') {
+            // $invoice->payment_status=15;
+            $invoice->payment_status = PaymentStatus::FULL_PAID;
+            $invoice->save();
+            /**/
+            Payment::create([
+            'user_id'        => $invoice->user_id,
+            'invoice_id'     => $invoice->id,
+            'payment_amount' => $invoice->total_amount,
+            'create_user_id' => $invoice->user_id,
+            'payment_method' => PaymentMethod::MPGS,
+            ]);
+            /**/
+            PaymentLog::create([
+                'transactionId' => $uuid,
+                'status'        => "SUCCESS",
+                'amount'        => $result['amount'],
+                'currency'      => $result['currency'],
+                'invoice_id'    => $invoice->id,
+                'created_at'    => $result['creationTime'],
+            ]);
+
+
+            return view('backend.invoice.success');
+        } else {
+            // $invoice->payment_status=14;
+            // $invoice->save();
+            return view('backend.invoice.error');
+        }
+
     }
 
     public function error()
     {
-        return view('backend.invoice.error');
     }
+
+
+
 }

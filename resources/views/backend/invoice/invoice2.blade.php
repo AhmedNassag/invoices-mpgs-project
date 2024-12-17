@@ -1,14 +1,14 @@
 @extends('_main_layout')
 
 @section('content')
-    
+
     <div class="container-fluid">
         <!-- Page Heading -->
         <div class="d-sm-flex align-items-center justify-content-between mb-4">
             <h1 class="h3 mb-0 text-gray-800"> <i class="fas fa-file-invoice-dollar"></i> {{ __('Invoice') }}</h1>
 
             <span class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
-                <a href="{{ route('admin.invoice.index') }}" class="text-white"><i class="fas fa-file-invoice-dollar fa-sm text-white-50"></i> {{ __('Invoice') }}</a> / 
+                <a href="{{ route('admin.invoice.index') }}" class="text-white"><i class="fas fa-file-invoice-dollar fa-sm text-white-50"></i> {{ __('Invoice') }}</a> /
                 <a class="text-white">{{ __('View') }}</a>
             </span>
         </div>
@@ -51,7 +51,7 @@
                                             <h4 class="title">{{ green_invoice_no($invoice->id) }}</h4>
                                             <div><strong>{{ __('Invoice Date') }}:</strong> {{ $invoice->date->format('d M Y') }}</div>
                                             <div><strong>{{ __('Due Date') }}:</strong> {{ $invoice->due_date->format('d M Y') }}</div>
-                                            <div><strong>{{ __('Reference No') }}:</strong> {{ $invoice->reference_no }}</div>
+                                            <div><strong>{{ __('Reference No') }}:</strong> {{ $invoice->uuid ?? $invoice->reference_no }}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -124,11 +124,11 @@
                                     </div>
                                 </div>
                             </div>
-                            
+
                             @if(!blank($invoice->note))
                                 <div class="invoice-notes text-center">
                                     <div class="p-3 bg-light rounded">
-                                        <span class="font-weight-bold">{{ __('Notes') }}:</span> 
+                                        <span class="font-weight-bold">{{ __('Notes') }}:</span>
                                         {{ $invoice->note }}
                                     </div>
                                 </div>
@@ -137,12 +137,12 @@
                         <div class="invoice-actions text-center mt-3">
                             <ul class="list list-inline mx-auto">
                                 <li class="list-inline-item">
-                                    <button id="print-invoice-button" type="button" onclick="printDiv()" class="btn btn-primary"> 
+                                    <button id="print-invoice-button" type="button" onclick="printDiv()" class="btn btn-primary">
                                         <i class="fa fa-print"></i> {{ __('Print Invoice') }}
                                     </button>
                                 </li>
                                 <li class="list-inline-item">
-                                    <button data-toggle="modal" data-target="#shareInvoice" type="button" class="btn btn-danger"> 
+                                    <button data-toggle="modal" data-target="#shareInvoice" type="button" class="btn btn-danger">
                                         <i class="fas fa-envelope"></i> {{ __('Share Invoice') }}
                                     </button>
                                 </li>
@@ -178,9 +178,11 @@
                     </div>
                     <div class="form-group">
                         <label for="message">{{ __('Message ')}} <span class="text-danger">*</span></label>
-                        <textarea name="message" id="message" class="form-control" cols="30" rows="3"></textarea>
+                        <textarea name="message" id="message" class="form-control" cols="30" rows="3" readonly>
+                            {{ __('Payment Link')}} : {{ route('checkout',$invoice->uuid) }}
+                        </textarea>
                     </div>
-                </div>        
+                </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-danger btn-sm" data-dismiss="modal">{{ __('Close ')}}</button>
                     <button type="button" class="btn btn-primary  btn-sm" id="sendInvoice">{{ __('Send Email') }}</button>
@@ -188,11 +190,11 @@
             </div>
         </div>
     </div>
-    
+
 @endsection
 
 @push('footer_scripts')
-    
+
     <script>
         function printDiv() {
             var oldPage  = document.body.innerHTML;
